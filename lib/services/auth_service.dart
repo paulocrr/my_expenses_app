@@ -3,10 +3,12 @@ import 'package:dartz/dartz.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:my_expenses_app/core/failures/failure.dart';
+import 'package:my_expenses_app/core/failures/firestore_failure.dart';
 import 'package:my_expenses_app/core/failures/login_failure.dart';
 import 'package:my_expenses_app/core/failures/login_firebase_failure.dart';
 import 'package:my_expenses_app/core/failures/login_google_failure.dart';
 import 'package:my_expenses_app/models/local_user.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class AuthService {
   final googleSignIn = GoogleSignIn();
@@ -36,6 +38,26 @@ class AuthService {
             createdAt: DateTime.now(),
           );
 
+          final result = await firebaseStore
+              .collection('users')
+              .where('id', isEqualTo: localUser.id)
+              .get();
+
+          final documents = result.docs;
+
+          if (documents.isEmpty) {
+            try {
+              firebaseStore
+                  .collection('users')
+                  .doc(localUser.id)
+                  .set(localUser.toMap());
+            } catch (e) {
+              return Left(FirestoreFailure(message: 'Error de firebase'));
+            }
+          }
+          final sharedPreferences = await SharedPreferences.getInstance();
+          sharedPreferences.setString('user_id', localUser.id);
+
           return Right(localUser);
         } else {
           return Left(LoginFirebaseFailure(message: ''));
@@ -55,7 +77,7 @@ class AuthService {
     if (isLoggedIn) {
       return const Right(true);
     } else {
-      return Left(LoginFailure(message: ''));
+      return Left(LoginFailure(message: 'Ocurrio un error'));
     }
   }
 }

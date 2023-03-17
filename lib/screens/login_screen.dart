@@ -1,5 +1,3 @@
-import 'dart:ffi';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_signin_button/button_list.dart';
 import 'package:flutter_signin_button/button_view.dart';
@@ -36,7 +34,6 @@ class _LoginScreenState extends State<LoginScreen> {
         ),
       );
     }, (r) {
-      // guardar en shared el token
       setState(() {
         screenState = ScreenState.completed;
       });
