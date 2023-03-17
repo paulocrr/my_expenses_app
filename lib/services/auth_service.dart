@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:my_expenses_app/core/failures/failure.dart';
 import 'package:my_expenses_app/core/failures/firestore_failure.dart';
+import 'package:my_expenses_app/core/failures/generic_failure.dart';
 import 'package:my_expenses_app/core/failures/login_failure.dart';
 import 'package:my_expenses_app/core/failures/login_firebase_failure.dart';
 import 'package:my_expenses_app/core/failures/login_google_failure.dart';
@@ -78,6 +79,39 @@ class AuthService {
       return const Right(true);
     } else {
       return Left(LoginFailure(message: 'Ocurrio un error'));
+    }
+  }
+
+  Future<Either<Failure, LocalUser>> getLocalUser() async {
+    final sharedPreferences = await SharedPreferences.getInstance();
+    final userId = sharedPreferences.getString('user_id');
+
+    final result = await firebaseStore
+        .collection('users')
+        .where('id', isEqualTo: userId)
+        .get();
+
+    final documents = result.docs;
+
+    if (documents.isNotEmpty) {
+      final userData = documents.first;
+
+      return Right(LocalUser.fromMap(userData.data()));
+    }
+
+    return Left(
+        FirestoreFailure(message: 'Error al obtener los datos del usuario'));
+  }
+
+  Future<Either<Failure, void>> googleSignOut() async {
+    try {
+      await firebaseAuth.signOut();
+      await googleSignIn.disconnect();
+      await googleSignIn.signOut();
+
+      return const Right(null);
+    } catch (e) {
+      return Left(GenericFailure(message: 'Error all cerrar sesion'));
     }
   }
 }
